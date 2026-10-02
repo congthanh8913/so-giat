@@ -3,20 +3,15 @@ package com.sotiemgiat.presentation.orders
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.sotiemgiat.data.local.database.DatabaseProvider
-import com.sotiemgiat.data.local.entity.CustomerEntity
-import com.sotiemgiat.data.local.entity.OrderEntity
-import com.sotiemgiat.data.local.entity.OrderItemEntity
-import com.sotiemgiat.data.local.entity.PaymentEntity
 import com.sotiemgiat.data.local.entity.ServiceEntity
-import com.sotiemgiat.data.repository.OrderRepository
+import com.sotiemgiat.di.AppContainer
+import com.sotiemgiat.domain.usecase.orders.CreateOrderRequest
+import com.sotiemgiat.domain.usecase.orders.CreateOrderUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import java.time.ZoneId
-import java.util.UUID
 import kotlin.math.roundToLong
 
 data class CreateOrderUiState(
@@ -40,8 +35,9 @@ data class CreateOrderUiState(
 }
 
 class CreateOrderViewModel(application: Application) : AndroidViewModel(application) {
-    private val database = DatabaseProvider.get(application)
-    private val repository = OrderRepository(database)
+    private val container = AppContainer(application)
+    private val serviceRepository = container.serviceRepository
+    private val createOrderUseCase: CreateOrderUseCase = container.createOrderUseCase
 
     private val _uiState = MutableStateFlow(CreateOrderUiState())
     val uiState: StateFlow<CreateOrderUiState> = _uiState.asStateFlow()
@@ -49,10 +45,13 @@ class CreateOrderViewModel(application: Application) : AndroidViewModel(applicat
     init {
         viewModelScope.launch {
             seedServicesIfNeeded()
-            repository.observeServices().collect { services ->
+        }
+        viewModelScope.launch {
+            serviceRepository.observeActiveServices().collect { services ->
                 _uiState.value = _uiState.value.copy(
                     services = services,
-                    selectedServiceId = _uiState.value.selectedServiceId ?: services.firstOrNull()?.id
+                    selectedServiceId = _uiState.value.selectedServiceId
+                        ?: services.firstOrNull()?.id
                 )
             }
         }
@@ -64,7 +63,7 @@ class CreateOrderViewModel(application: Application) : AndroidViewModel(applicat
     fun updatePaidAmount(value: String) { update { copy(paidAmount = value, error = null) } }
     fun updateNote(value: String) { update { copy(note = value, error = null) } }
     fun selectService(id: Long) { update { copy(selectedServiceId = id, error = null) } }
-    fun setDueDate(date: LocalDate) { update { copy(dueDate = date) } }
+    fun setDueDate(date: LocalDate) { update { copy(dueDate = date, error = null) } }
 
     fun saveOrder() {
         val state = _uiState.value
@@ -72,69 +71,38 @@ class CreateOrderViewModel(application: Application) : AndroidViewModel(applicat
         val quantity = state.quantity.toDoubleOrNull()
         val paid = state.paidAmount.toLongOrNull() ?: 0L
 
-        if (state.customerName.isBlank()) {
-            update { copy(error = "Vui lòng nhập tên khách hàng.") }
-            return
+        when {
+            state.customerName.isBlank() ->
+                update { copy(error = "Vui lòng nhập tên khách hàng.") }
+            service == null ->
+                update { copy(error = "Vui lòng chọn dịch vụ.") }
+            quantity == null || quantity <= 0 ->
+                update { copy(error = "Số lượng phải lớn hơn 0.") }
+            paid < 0 || paid > state.total ->
+                update { copy(error = "Tiền khách trả không hợp lệ.") }
+            else -> saveValidOrder(state, service, quantity, paid)
         }
-        if (service == null) {
-            update { copy(error = "Vui lòng chọn dịch vụ.") }
-            return
-        }
-        if (quantity == null || quantity <= 0) {
-            update { copy(error = "Số lượng phải lớn hơn 0.") }
-            return
-        }
-        if (paid < 0 || paid > state.total) {
-            update { copy(error = "Tiền khách trả không hợp lệ.") }
-            return
-        }
+    }
 
+    private fun saveValidOrder(
+        state: CreateOrderUiState,
+        service: ServiceEntity,
+        quantity: Double,
+        paid: Long
+    ) {
         viewModelScope.launch {
             update { copy(isSaving = true, error = null) }
             runCatching {
-                val now = System.currentTimeMillis()
-                val phone = state.customerPhone.trim()
-                val customerId = if (phone.isNotBlank()) {
-                    database.customerDao().getByPhone(phone)?.id
-                        ?: database.customerDao().insert(
-                            CustomerEntity(
-                                name = state.customerName.trim(),
-                                phone = phone
-                            )
-                        )
-                } else {
-                    database.customerDao().insert(
-                        CustomerEntity(
-                            name = state.customerName.trim(),
-                            phone = ""
-                        )
-                    )
-                }
-                repository.createOrder(
-                    order = OrderEntity(
-                        orderNumber = "SG-${UUID.randomUUID().toString().take(8).uppercase()}",
-                        customerId = customerId,
-                        receivedAt = now,
-                        dueAt = state.dueDate.atTime(23, 59).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
-                        completedAt = null,
-                        deliveredAt = null,
-                        status = "RECEIVED",
-                        subtotal = state.total,
-                        total = state.total,
+                createOrderUseCase(
+                    CreateOrderRequest(
+                        customerName = state.customerName,
+                        customerPhone = state.customerPhone,
+                        service = service,
+                        quantity = quantity,
                         paidAmount = paid,
-                        note = state.note.trim()
-                    ),
-                    items = listOf(
-                        OrderItemEntity(
-                            orderId = 0,
-                            serviceId = service.id,
-                            serviceNameSnapshot = service.name,
-                            quantity = quantity,
-                            unitPrice = service.price,
-                            total = state.total
-                        )
-                    ),
-                    payment = if (paid > 0) PaymentEntity(orderId = 0, amount = paid) else null
+                        dueDate = state.dueDate,
+                        note = state.note
+                    )
                 )
             }.onSuccess {
                 update { copy(isSaving = false, saved = true) }
@@ -154,13 +122,13 @@ class CreateOrderViewModel(application: Application) : AndroidViewModel(applicat
     }
 
     private suspend fun seedServicesIfNeeded() {
-        if (database.serviceDao().count() == 0) {
+        if (serviceRepository.count() == 0) {
             listOf(
                 ServiceEntity(name = "Giặt sấy", price = 15000),
                 ServiceEntity(name = "Giặt chăn", price = 50000),
                 ServiceEntity(name = "Sấy", price = 20000),
                 ServiceEntity(name = "Ủi", price = 10000)
-            ).forEach { database.serviceDao().insert(it) }
+            ).forEach(serviceRepository::addService)
         }
     }
 
