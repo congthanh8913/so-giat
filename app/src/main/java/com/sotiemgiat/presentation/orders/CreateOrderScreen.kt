@@ -21,12 +21,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sotiemgiat.di.AppContainer
 import java.time.LocalDate
 
 @Composable
 fun CreateOrderScreen(
     onSaved: () -> Unit,
-    viewModel: CreateOrderViewModel = viewModel()
+    appContainer: AppContainer,
+    viewModel: CreateOrderViewModel = viewModel(factory = CreateOrderViewModel.factory(appContainer))
 ) {
     val state by viewModel.uiState.collectAsState()
 
