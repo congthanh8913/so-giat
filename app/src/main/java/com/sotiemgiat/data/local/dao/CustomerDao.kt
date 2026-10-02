@@ -16,4 +16,7 @@ interface CustomerDao {
 
     @Query("SELECT * FROM customers WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): CustomerEntity?
+
+    @Query("SELECT * FROM customers WHERE phone = :phone LIMIT 1")
+    suspend fun getByPhone(phone: String): CustomerEntity?
 }
