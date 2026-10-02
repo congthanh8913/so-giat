@@ -13,6 +13,9 @@ object DatabaseProvider {
                 context.applicationContext,
                 SoGiatDatabase::class.java,
                 "so_giat.db"
-            ).build().also { INSTANCE = it }
+            )
+                .addMigrations(SoGiatDatabase.MIGRATION_1_2)
+                .build()
+                .also { INSTANCE = it }
         }
 }
