@@ -1,7 +1,5 @@
 package com.sotiemgiat.presentation.orders
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.sotiemgiat.data.local.entity.ServiceEntity
 import com.sotiemgiat.di.AppContainer
@@ -34,10 +32,10 @@ data class CreateOrderUiState(
         get() = ((quantity.toDoubleOrNull() ?: 0.0) * (selectedService?.price ?: 0L)).roundToLong()
 }
 
-class CreateOrderViewModel(application: Application) : AndroidViewModel(application) {
-    private val container = AppContainer(application)
-    private val serviceRepository = container.serviceRepository
-    private val createOrderUseCase: CreateOrderUseCase = container.createOrderUseCase
+class CreateOrderViewModel(
+    private val serviceRepository: com.sotiemgiat.domain.repository.ServiceRepository,
+    private val createOrderUseCase: CreateOrderUseCase
+) : ViewModel()
 
     private val _uiState = MutableStateFlow(CreateOrderUiState())
     val uiState: StateFlow<CreateOrderUiState> = _uiState.asStateFlow()
@@ -136,5 +134,17 @@ class CreateOrderViewModel(application: Application) : AndroidViewModel(applicat
 
     private inline fun update(transform: CreateOrderUiState.() -> CreateOrderUiState) {
         _uiState.value = _uiState.value.transform()
+    }
+
+    companion object {
+        fun factory(container: AppContainer): ViewModelProvider.Factory =
+            object : ViewModelProvider.Factory {
+                @Suppress("UNCHECKED_CAST")
+                override fun <T : ViewModel> create(modelClass: Class<T>): T =
+                    CreateOrderViewModel(
+                        serviceRepository = container.serviceRepository,
+                        createOrderUseCase = container.createOrderUseCase
+                    ) as T
+            }
     }
 }
