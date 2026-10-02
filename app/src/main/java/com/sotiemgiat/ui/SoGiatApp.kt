@@ -53,7 +53,8 @@ fun SoGiatApp() {
                 modifier = Modifier.fillMaxSize().padding(padding)
             ) {
                 CreateOrderScreen(
-                    onSaved = { showCreateOrder = false }
+                    onSaved = { showCreateOrder = false },
+                    appContainer = appContainer
                 )
             }
         }
