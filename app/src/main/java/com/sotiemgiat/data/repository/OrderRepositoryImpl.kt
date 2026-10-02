@@ -5,11 +5,14 @@ import com.sotiemgiat.data.local.database.SoGiatDatabase
 import com.sotiemgiat.data.local.entity.OrderEntity
 import com.sotiemgiat.data.local.entity.OrderItemEntity
 import com.sotiemgiat.data.local.entity.PaymentEntity
+import com.sotiemgiat.data.local.model.OrderListItem
 import com.sotiemgiat.domain.repository.OrderRepository
 import kotlinx.coroutines.flow.Flow
 
 class OrderRepositoryImpl(private val database: SoGiatDatabase) : OrderRepository {
     override fun observeOrders(): Flow<List<OrderEntity>> = database.orderDao().observeAll()
+
+    override fun observeOrderList(): Flow<List<OrderListItem>> = database.orderDao().observeOrderList()
 
     override suspend fun createOrder(
         order: OrderEntity,
