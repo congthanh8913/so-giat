@@ -1,9 +1,14 @@
 #!/bin/sh
-APP_HOME=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-WRAPPER_JAR="$APP_HOME/gradle/wrapper/gradle-wrapper.jar"
-if [ ! -f "$WRAPPER_JAR" ]; then
-  echo "Gradle Wrapper JAR not found. Downloading official Gradle Wrapper..."
-  mkdir -p "$APP_HOME/gradle/wrapper"
-  curl -fsSL -o "$WRAPPER_JAR" "https://raw.githubusercontent.com/gradle/gradle/v8.10.0/gradle/wrapper/gradle-wrapper.jar" || exit 1
+set -e
+GRADLE_VERSION="8.10"
+GRADLE_HOME="${GRADLE_USER_HOME:-$HOME/.gradle}/wrapper/bootstrap/gradle-$GRADLE_VERSION"
+GRADLE_EXE="$GRADLE_HOME/bin/gradle"
+if [ ! -x "$GRADLE_EXE" ]; then
+  echo "Gradle $GRADLE_VERSION not found. Downloading official Gradle distribution..."
+  ZIP="${TMPDIR:-/tmp}/gradle-$GRADLE_VERSION-bin.zip"
+  mkdir -p "$(dirname "$GRADLE_HOME")"
+  curl -fL -o "$ZIP" "https://services.gradle.org/distributions/gradle-$GRADLE_VERSION-bin.zip"
+  unzip -q -o "$ZIP" -d "$(dirname "$GRADLE_HOME")"
+  rm -f "$ZIP"
 fi
-exec "${JAVA_HOME}/bin/java" -jar "$WRAPPER_JAR" "$@"
+exec "$GRADLE_EXE" "$@"
