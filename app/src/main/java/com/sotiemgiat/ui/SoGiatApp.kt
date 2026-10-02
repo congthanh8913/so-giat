@@ -33,7 +33,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sotiemgiat.di.AppContainer
 import com.sotiemgiat.presentation.orders.CreateOrderScreen
@@ -45,7 +44,8 @@ import java.time.LocalTime
 fun SoGiatApp() {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     var showCreateOrder by rememberSaveable { mutableStateOf(false) }
-    val appContainer = remember { AppContainer(LocalContext.current) }
+    val context = LocalContext.current
+    val appContainer = remember { AppContainer(context) }
 
     if (showCreateOrder) {
         Scaffold { padding ->
