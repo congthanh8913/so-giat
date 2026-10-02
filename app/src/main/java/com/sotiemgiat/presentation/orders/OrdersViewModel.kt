@@ -2,11 +2,12 @@ package com.sotiemgiat.presentation.orders
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
 import com.sotiemgiat.data.local.model.OrderListItem
 import com.sotiemgiat.domain.repository.OrderRepository
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.SharingStarted
 
 class OrdersViewModel(
     orderRepository: OrderRepository
@@ -14,7 +15,7 @@ class OrdersViewModel(
     val orders: StateFlow<List<OrderListItem>> =
         orderRepository.observeOrderList()
             .stateIn(
-                scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main.immediate),
+                scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5_000),
                 initialValue = emptyList()
             )
