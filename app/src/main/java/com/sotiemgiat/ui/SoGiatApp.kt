@@ -25,16 +25,32 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.sotiemgiat.presentation.orders.CreateOrderScreen
 import java.time.LocalTime
 
 @Composable
 fun SoGiatApp() {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
+    var showCreateOrder by rememberSaveable { mutableStateOf(false) }
+
+    if (showCreateOrder) {
+        Scaffold { padding ->
+            Column(
+                modifier = Modifier.fillMaxSize().padding(padding)
+            ) {
+                CreateOrderScreen(
+                    onSaved = { showCreateOrder = false }
+                )
+            }
+        }
+        return
+    }
 
     Scaffold(
         bottomBar = {
@@ -58,14 +74,14 @@ fun SoGiatApp() {
         },
         floatingActionButton = {
             if (selectedTab == 0 || selectedTab == 1) {
-                FloatingActionButton(onClick = { }) {
+                FloatingActionButton(onClick = { showCreateOrder = true }) {
                     Icon(Icons.Default.Add, contentDescription = "Tạo đơn")
                 }
             }
         }
     ) { padding ->
         when (selectedTab) {
-            0 -> DashboardScreen(padding)
+            0 -> DashboardScreen(padding, onCreateOrder = { showCreateOrder = true })
             1 -> SimpleScreen(padding, "Đơn hàng", "Danh sách đơn giặt sẽ được xây dựng ở bước tiếp theo.")
             2 -> SimpleScreen(padding, "Khách hàng", "Danh sách khách hàng sẽ được xây dựng ở bước tiếp theo.")
             else -> SimpleScreen(padding, "Cài đặt", "Cấu hình dịch vụ, sao lưu và khôi phục sẽ được xây dựng ở bước tiếp theo.")
@@ -74,7 +90,7 @@ fun SoGiatApp() {
 }
 
 @Composable
-private fun DashboardScreen(padding: PaddingValues) {
+private fun DashboardScreen(padding: PaddingValues, onCreateOrder: () -> Unit) {
     val hour = LocalTime.now().hour
     val greeting = when (hour) {
         in 5..11 -> "Chào buổi sáng"
@@ -107,7 +123,7 @@ private fun DashboardScreen(padding: PaddingValues) {
 
         Spacer(Modifier.size(4.dp))
         Button(
-            onClick = { },
+            onClick = onCreateOrder,
             modifier = Modifier.fillMaxWidth()
         ) {
             Icon(Icons.Default.Add, contentDescription = null)
@@ -131,7 +147,8 @@ private fun SummaryCard(title: String, value: String, modifier: Modifier) {
 private fun SimpleScreen(padding: PaddingValues, title: String, description: String) {
     Column(
         modifier = Modifier.fillMaxSize().padding(padding).padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalAlignment = Alignment.Start
     ) {
         Text(title)
         Text(description)
