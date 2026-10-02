@@ -93,18 +93,29 @@ class CreateOrderViewModel(application: Application) : AndroidViewModel(applicat
             update { copy(isSaving = true, error = null) }
             runCatching {
                 val now = System.currentTimeMillis()
-                val customerId = database.customerDao().insert(
-                    CustomerEntity(
-                        name = state.customerName.trim(),
-                        phone = state.customerPhone.trim()
+                val phone = state.customerPhone.trim()
+                val customerId = if (phone.isNotBlank()) {
+                    database.customerDao().getByPhone(phone)?.id
+                        ?: database.customerDao().insert(
+                            CustomerEntity(
+                                name = state.customerName.trim(),
+                                phone = phone
+                            )
+                        )
+                } else {
+                    database.customerDao().insert(
+                        CustomerEntity(
+                            name = state.customerName.trim(),
+                            phone = ""
+                        )
                     )
-                )
+                }
                 repository.createOrder(
                     order = OrderEntity(
                         orderNumber = "SG-${UUID.randomUUID().toString().take(8).uppercase()}",
                         customerId = customerId,
                         receivedAt = now,
-                        dueAt = state.dueDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+                        dueAt = state.dueDate.atTime(23, 59).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
                         completedAt = null,
                         deliveredAt = null,
                         status = "RECEIVED",
