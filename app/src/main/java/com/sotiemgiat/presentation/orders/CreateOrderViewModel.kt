@@ -128,7 +128,9 @@ class CreateOrderViewModel(application: Application) : AndroidViewModel(applicat
                 ServiceEntity(name = "Giặt chăn", price = 50000),
                 ServiceEntity(name = "Sấy", price = 20000),
                 ServiceEntity(name = "Ủi", price = 10000)
-            ).forEach { service ->\n                serviceRepository.addService(service)\n            }
+            ).forEach { service ->
+                serviceRepository.addService(service)
+            }
         }
     }
 
