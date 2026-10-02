@@ -26,18 +26,26 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sotiemgiat.di.AppContainer
 import com.sotiemgiat.presentation.orders.CreateOrderScreen
+import com.sotiemgiat.presentation.orders.OrdersScreen
+import com.sotiemgiat.presentation.orders.OrdersViewModel
 import java.time.LocalTime
 
 @Composable
 fun SoGiatApp() {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     var showCreateOrder by rememberSaveable { mutableStateOf(false) }
+    val appContainer = remember { AppContainer(LocalContext.current) }
 
     if (showCreateOrder) {
         Scaffold { padding ->
@@ -82,11 +90,19 @@ fun SoGiatApp() {
     ) { padding ->
         when (selectedTab) {
             0 -> DashboardScreen(padding, onCreateOrder = { showCreateOrder = true })
-            1 -> SimpleScreen(padding, "Đơn hàng", "Danh sách đơn giặt sẽ được xây dựng ở bước tiếp theo.")
+            1 -> OrdersTab(appContainer)
             2 -> SimpleScreen(padding, "Khách hàng", "Danh sách khách hàng sẽ được xây dựng ở bước tiếp theo.")
             else -> SimpleScreen(padding, "Cài đặt", "Cấu hình dịch vụ, sao lưu và khôi phục sẽ được xây dựng ở bước tiếp theo.")
         }
     }
+}
+
+@Composable
+private fun OrdersTab(appContainer: AppContainer) {
+    val viewModel: OrdersViewModel = viewModel(
+        factory = OrdersViewModel.factory(appContainer.orderRepository)
+    )
+    OrdersScreen(viewModel)
 }
 
 @Composable
