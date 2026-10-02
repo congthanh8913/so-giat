@@ -1,6 +1,6 @@
 #!/bin/sh
 set -e
-GRADLE_VERSION="8.10"
+GRADLE_VERSION="8.10.2"
 GRADLE_HOME="${GRADLE_USER_HOME:-$HOME/.gradle}/wrapper/bootstrap/gradle-$GRADLE_VERSION"
 GRADLE_EXE="$GRADLE_HOME/bin/gradle"
 if [ ! -x "$GRADLE_EXE" ]; then
